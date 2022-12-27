@@ -1,0 +1,241 @@
+/******************************************************/
+/* Reset **********************************************/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+
+/******************************************************/
+/* clases generales ***********************************/
+.page {
+  background-color: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden auto;
+}
+
+
+/******************************************************/
+/* Boton **********************************************/
+#Boton {
+  z-index: 1;
+  display: flex;justify-content: center;align-items: center;
+  position: fixed; inset: auto 16px 16px auto;
+  font-size: clamp(16px, 1.5rem, 32px);
+  font-family: Arial;font-weight: 900;
+  height: 1.8em;width: 1.8em;
+  background-color: #5c0;color: #fff;
+  border-radius: 50%;opacity: .7;
+  box-shadow: -2px 2px 8px rgba(0,0,0,.4);
+}
+#Boton::after {
+  content: '+';
+}
+
+
+
+/******************************************************/
+/* Principal.page *************************************/
+body:not([data-page="Principal"]) #Principal {
+  display: none !important;
+}
+#Principal {
+  padding: 3em 0 20vw;
+}
+#Principal::before {
+  content: "Notas";z-index: 3;
+  position: fixed;top: 0;left: 0;
+  width: 100vw;height: 2.4em;
+  display: flex;align-items: center;justify-content: center;
+  font-size: 1.2rem;font-weight: 900;font-family: Verdana, Geneva, Tahoma, sans-serif;
+  background-color: inherit;box-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+.nota {
+  position: relative;
+  background-color: #eeb;
+  padding: 1em;
+  line-height: 1.5;
+  white-space: pre;
+  
+  position: relative;
+  overflow: hidden;
+}
+.nota > h1 {
+  font-size: 1.2em;
+  margin-bottom: .5em;
+  overflow: hidden;white-space: nowrap;text-overflow: ellipsis;
+}
+.nota > p {
+  overflow: hidden;
+  max-height: 12em;
+}
+.nota > .vacio {
+  font-size: .8em;
+  opacity: .5;
+}
+
+
+/******************************************************/
+/* .nota-container ************************************/
+.nota-container {
+  margin: 1.5em auto 0;
+  width: 90%;
+  max-width: 750px;
+  position: relative;
+  overflow-x: hidden;
+}
+.nota-container::before {
+  content: 'Eliminar';
+  position: absolute;inset: 0;
+  background-color: tomato; color: #fff;
+  font-weight: 600;
+  display: block;
+  
+  display: flex;justify-content: flex-end;align-items: center;
+  padding: 1em;
+}
+.nota-container:not(.no-animate) .nota {
+  transition: right .3s;
+}
+
+
+/******************************************************/
+/* .menu **********************************************/
+#Principal:not(.viewmenu) .menu {
+  display: none !important;
+}
+.menu {
+  z-index: 2;position: fixed;inset: 0;
+  background-color: inherit;
+  color: inherit;
+  padding: 5rem 3rem 2em;
+  line-height: 2;
+  overflow: hidden auto;
+}
+.menu_title {
+  margin-left: -1rem;
+  font-size: 1.1rem;font-weight: 900;
+}
+.menu_opciones {
+  padding: 0 0 1rem .5rem;margin-bottom: 1em;
+  border-bottom: 2px solid #444;
+}
+.menu_subtitle {
+  margin-left: -.5rem;
+  font-weight: 600;opacity: .6;
+}
+.opcion {
+  display: flex;gap: 1em;
+  overflow-x: hidden;max-width: 100%;
+}
+.menu_btns {
+  display: flex;justify-content: flex-end;gap: 1em;
+  font-weight: 600;
+}
+
+
+/******************************************************/
+/* Prompt, dialog *************************************/
+#Prompt {
+  z-index: 20;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.4);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.dialog {
+  width: clamp(200px, 60%, 400px);
+  padding: 1.5em;
+  padding-bottom: .5em;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 4px 4px rgba(0,0,0,.4);
+}
+.dialog_title {
+  font-weight: 900;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 1em;
+}
+.dialog_title:empty {
+  display: none;
+}
+.dialog_content {
+  padding-bottom: 2em;
+  aspect-ratio: 6/2;
+}
+.dialog_opciones {
+  display: flex;
+  justify-content: flex-end;
+  font-weight: 600;
+  margin-top: 1em;
+  color: #3c71c2;
+  margin-right: -1em;
+}
+.dialog_opciones * {
+  padding: 1em;
+}
+
+
+/******************************************************/
+/* Editor.page ****************************************/
+body:not([data-page="Editor"]) #Editor {
+  display: none !important;
+}
+#Editor {
+  display: flex;
+  flex-direction: column;
+}
+.editor_header {
+  height: 5.5em;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  position: relative;
+  z-index: 1;
+}
+.editor_opciones {
+  display: flex;justify-content: flex-end;gap: 1em;flex-wrap: wrap;
+  margin: 0 auto;padding: 0 2em;width: 100%;
+  color: inherit;font-weight: 600;opacity: 0.7;
+  font-style: italic;
+}
+.editor_title {
+  font-size: 1.2rem;font-weight: 900;font-family: Verdana, Geneva, Tahoma, sans-serif;
+  border: none;outline: none;
+  width: 80%;height: 2em;
+  white-space: nowrap;
+  display: block;margin: .8em auto 0;
+  background-color: inherit;
+  color: inherit;
+}
+.editor_title::placeholder {
+  opacity: .5;
+}
+.editor_content {
+  flex-grow: 1;
+  resize: none;
+  outline: none;
+  border: none;
+  padding: 30px 30px 10vw 30px;
+  font-size: 1rem;
+  background-color: inherit;
+  color: inherit;
+}
+.editor_content::placeholder {
+  opacity: .5;
+}
+
+
+/* FINAL **********************************************/
+/******************************************************/
+
+
+

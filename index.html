@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel="stylesheet" href="./styles.css" type="text/css" media="all" />
+  <script src="./console.js" type="text/javascript" charset="utf-8"></script>
+  <script src="./tools.js" type="text/javascript" charset="utf-8"></script>
+  <style type="text/css" media="all"></style>
+</head>
+<body data-page="Principal">
+<script defer type="text/javascript" charset="utf-8">
+
+
+/******************************************************/
+/* Esperando... ***************************************/
+if (document.readyState == 'complete') Run();
+else window.addEventListener('load', () => Run());
+
+
+/* Declaracion de variables ***************************/
+/**************************************/function Run() {
+    const {tag, encode, decode} = mnd.frames.util
+    const {JsInterface} = mnd.frames.jsi
+    let DataBase, currentNota = null, Config = {}, time = 0, editado = false, rejectDialog = () => null
+    let $view_notas_ocultas, $view_consola, $execute_stylesheet
+    let $dialog_title, $dialog_content, $dialog_false, $dialog_true
+
+/******************************************************/
+/* Initialize Elementos *******************************/
+    const $Boton = tag('','',{id:'Boton'})({click: crearNota})
+    const $Menu = tag('','menu')(
+      tag('','menu_title')('Opciones'),
+      tag('','menu_opciones')(
+        tag('','menu_subtitle')('Vista'),tag('label','opcion',{'for':'x001'})(
+          $view_notas_ocultas = tag('input','',{type:'checkbox', id:'x001'})(), tag()('Notas ocultas')),
+        tag('label','opcion',{'for':'x003'})(
+          $view_consola = tag('input','',{type:'checkbox', id:'x003'})(), tag()('Consola')),
+        tag('','menu_subtitle')('Ejecucion'),tag('label','opcion',{'for':'x004'})(
+          $execute_stylesheet = tag('input','',{type:'checkbox', id:'x004'})(), tag()('Hoja de estilos'))
+      ),
+      tag('','menu_btns')(
+        tag()('Descartar', {click: config_descartar}),
+        tag()('Guardar', {click: config_guardar})
+      )
+    )
+    
+    const $NotasContainer = tag()({click: itemSelect, touchstart: notasTouch})
+    const $Principal = tag('','page',{id:'Principal'})($Boton, $Menu, $NotasContainer, {dblclick: dblclick_principal})
+    
+    const $BtnDescartar = tag('p')('Descartar', {click: descartarNota})
+    const $BtnGuardar = tag('p')('Guardar', {click: revisarNota})
+    const $EditorOpciones = tag('','editor_opciones')($BtnDescartar, $BtnGuardar)
+    
+    const $EditorContent = tag('textarea','editor_content',{placeholder:'escriba un texto'})({input: () => editado = true})
+    const $EditorTitle = tag('input','editor_title',{placeholder:'Titulo'})({input: () => editado = true})
+    const $EditorHeader = tag('','editor_header')($EditorTitle, $EditorOpciones)
+    const $Editor = tag('','page',{id:'Editor'})($EditorHeader, $EditorContent)
+    
+    const $Prompt = tag('','',{id:'Prompt'})(
+      tag('','dialog')(
+        $dialog_title = tag('','dialog_title')(),
+        $dialog_content = tag('','dialog_content')(),
+        tag('','dialog_opciones')(
+          $dialog_false = tag('','dialog_false')('Cancelar'),
+          $dialog_true = tag('','dialog_true')('Aceptar')
+        )
+      )
+    );
+
+
+/******************************************************/
+/* Solicitud de base de datos => Main *****************/
+    Promise.all([
+      JsInterface.readFile('NotasConfig').then(decode),
+      JsInterface.readFile('DataBase').then(decode)
+    ]).then(([config ,data]) => {
+      mnd.apps.notas.DataBase = DataBase = new mnd.frames.data.Mapa(data)
+      mnd.apps.notas.Config = Config = JSON.parse(config || '{}')
+      if(Config.view_consola) console._show()
+      if(Config.execute_stylesheet) aplicarEstilos()
+      
+      actualizarVista()
+      document.body.appendChild($Principal)
+      document.body.appendChild($Editor)
+      mnd.frames.jsi.JsEvent = JsEvent
+    })
+
+
+/******************************************************/
+/* Eventos escucha >= funciones ***********************/
+    function crearNota() {
+      console.log(99)
+      currentNota = null
+      document.body.dataset.page = 'Editor';
+    }
+    function descartarNota() {
+      currentNota = null
+      limpiar_volver()
+    }
+    function itemSelect(e) {
+      let nota = e.target.closest('.nota-container.active')
+      if(nota && DataBase.has(nota.id)) {
+        currentNota = DataBase.getItem(nota.id)
+        $EditorTitle.value = currentNota.OBJECT.title
+        $EditorContent.value = currentNota.OBJECT.content
+        document.body.dataset.page = 'Editor'
+      }
+    }
+    function dblclick_principal({target}) { 
+      if(target == this && !this.classList.contains('viewmenu')) {
+        $view_notas_ocultas.checked = !!Config.view_notas_ocultas
+        $view_consola.checked = !!Config.view_consola
+        $execute_stylesheet.checked = !!Config.execute_stylesheet
+        this.classList.add('viewmenu')
+      }
+    }
+    function config_guardar() {
+      Config.view_consola = !!$view_consola.checked
+      Config.view_notas_ocultas = !!$view_notas_ocultas.checked
+      Config.execute_stylesheet = !!$execute_stylesheet.checked
+      
+      console[ (Config.view_consola) ? '_show' : '_hide' ]()
+      encode(JSON.stringify(Config)).then(content => {
+        JsInterface.writeFile('NotasConfig', content)
+        actualizarVista()
+        $Principal.classList.remove('viewmenu')
+      })
+    }
+    function config_descartar() {
+      $Principal.classList.remove('viewmenu')
+    }
+    function notasTouch(e) {
+      let $notaContainer = e.target.closest('.nota-container.active')
+      let pointStart = e.touches[0].clientX, move = 0
+      if($notaContainer) {
+        $notaContainer.classList.add('no-animate')
+        $NotasContainer.addEventListener('touchmove', touchmove);
+        $NotasContainer.ontouchend = function () {
+          touchend()
+          $NotasContainer.removeEventListener('touchmove', touchmove);
+          $NotasContainer.ontouchend = null
+        }
+      }
+      function touchmove(e) {
+        move = Math.max(0, pointStart - e.touches[0].clientX)
+        $notaContainer.firstChild.style.right = move + 'px'
+      }
+      function touchend() {
+        let min = Math.min($notaContainer.clientWidth/3, 200)
+        $notaContainer.classList.remove('no-animate')
+        if(move < min) return $notaContainer.firstChild.style.right = '0'
+        
+        $notaContainer.firstChild.style.right = '100%'
+        $notaContainer.classList.remove('active')
+        setTimeout(() => {
+          question('','¿Desea eliminar esta nota?')
+          .then(() => {
+            eliminarNota($notaContainer.id)
+            guardarArchivo()
+          }, () => {
+            $notaContainer.firstChild.style.right = '0'
+            $notaContainer.classList.add('active')
+          })
+        }, 300)
+      }
+    }
+
+
+/******************************************************/
+/* guardarNota <= funcion *****************************/
+    function revisarNota() {
+      if(!$EditorTitle.value.trim() && !$EditorContent.value.trim()) {
+        if(!currentNota) {
+          limpiar_volver();
+          return JsInterface.toast('Nota vacia descartada!')
+        } else {
+          eliminarNota(currentNota.ID)
+          guardarArchivo().then(()=> {
+            limpiar_volver()
+          })
+          return JsInterface.toast('Nota vacia eliminada!')
+        }
+      }
+      guardarNota()
+    }
+    function guardarNota() {
+      if(currentNota === null)
+        currentNota = DataBase.push();
+      currentNota.OBJECT.title = $EditorTitle.value
+      currentNota.OBJECT.content = $EditorContent.value
+      currentNota = null
+      guardarArchivo().then(()=> {
+        actualizarVista()
+        limpiar_volver()
+      })
+    }
+
+
+/******************************************************/
+/* Ayudantes >= funciones *****************************/
+    function limpiar_volver() {
+      $EditorTitle.value = ''
+      $EditorContent.value = ''
+      document.body.dataset.page = 'Principal'
+      editado = false
+    }
+    function actualizarVista() {
+      $NotasContainer.innerHTML = ''
+      DataBase.getArray(filtro).reverse().map(({OBJECT: nota, ID}) => 
+        tag('','nota-container active',{id: ID})(tag('p','nota')(
+          nota.title && tag('h1')(nota.title),
+          tag('p')(
+            nota.content || tag('','vacio')('(vacio)')
+          )
+        ))
+      ).forEach(nota => nota && $NotasContainer.appendChild(nota))
+    }
+    function guardarArchivo() {
+      return encode(DataBase.toJsonString()).then(content => {
+        JsInterface.writeFile('DataBase', content)
+      })
+    }
+
+
+/******************************************************/
+/* Avanzadas >= funciones *******************************/
+    function aplicarEstilos() {
+      DataBase.getArray(null).forEach(({OBJECT: nota}) => {
+        if(nota.title === '.styles')
+          document.head.appendChild(tag('style','',{type:'text/css'})(nota.content))
+      })
+    }
+    function filtro({OBJECT: nota, ID}) {
+      return (Config.view_notas_ocultas || !nota.title.startsWith('.'))
+      return true
+    }
+    function JsEvent(event) {
+      if(document.querySelector('#Prompt')) {
+        rejectDialog()
+      }
+      else if(document.body.dataset.page === 'Editor') {
+        if(editado) question('', '¿Desea descartar la nota actual?', 'Cancelar', 'Aceptar').then(descartarNota)
+        else descartarNota()
+      }
+      else if($Principal.classList.contains('viewmenu'))
+        config_descartar()
+      else {
+        if((Date.now() - time) < 2500) JsInterface.finish()
+        else JsInterface.toast('Precione "atras" nuevamente para salir.')
+        time = Date.now()
+      }
+    }
+    function question(title, content = '', _false = 'Cancelar', _true = 'Aceptar') {
+      $dialog_title.innerText = title || ''
+      $dialog_content.innerHTML = content
+      $dialog_false.innerText = _false
+      $dialog_true.innerText = _true
+      
+      const prom = new Promise((resolve, reject) => {
+        rejectDialog = reject
+        $dialog_true.onclick = resolve
+        $dialog_false.onclick = reject
+        $Prompt.onclick = reject
+      })
+      prom.finally(() => {
+        rejectDialog = () => null
+        $dialog_true.onclick = null
+        $dialog_false.onclick = null
+        $Prompt.onclick = null
+        $Prompt.remove()
+      })
+      document.body.appendChild($Prompt)
+      
+      return prom
+    }
+    function eliminarNota(id) {
+      DataBase.remove(id)
+      document.querySelector('#'+id+'.nota-container')?.remove()
+    }
+
+
+}/* FINAL **********************************************/
+/******************************************************/
+</script>
+</body>
+</html>
